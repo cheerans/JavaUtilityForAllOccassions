@@ -50,15 +50,10 @@ public class UniqueLock {
 		try {
 
 			File file = new File(serviceName + ".dat");
-
 			// Creates a random access file stream to read from, and optionally
 			// to write to
 			FileChannel channel = new RandomAccessFile(file, "rw").getChannel();
-
-			// Acquire an exclusive lock on this channel's file
-			// (blocks until lock can be retrieved)
-			FileLock lock = channel.lock();
-
+			FileLock lock = null;
 			// Attempts to acquire an exclusive lock on this channel's
 			// file (returns null or throws an exception if the file
 			// is already locked.
@@ -77,16 +72,22 @@ public class UniqueLock {
 		return bRet;
 	}
 
-	public static void releaseLock(String serviceName) {
+	public static boolean releaseLock(String serviceName) {
 
+		boolean bRet = false;
 		try {
-			UniqueLock.LockData storeFileLockData = (UniqueLock.LockData) lockDataMap.get(serviceName);
-			// release the lock
-			storeFileLockData.getLock().release();
-			// close the channel
-			storeFileLockData.getChannel().close();
+			UniqueLock.LockData storeFileLockData = (UniqueLock.LockData) lockDataMap.get(serviceName);			
+			if(null != storeFileLockData){
+				// release the lock
+				storeFileLockData.getLock().release();
+				// close the channel
+				storeFileLockData.getChannel().close();
+				lockDataMap.remove(serviceName);
+				bRet = true;
+			}
 		} catch (IOException e) {
-			System.out.println("I/O Error: " + e.getMessage());
+			bRet = false;
 		}
+		return bRet;
 	}
 }
